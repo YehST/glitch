@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<link rel="stylesheet" href="style.css">
+<head>
+ <%- include('./partials/head'); %>
+</head>
+<header>
+  <%- include('./partials/logout_header'); %>
+</header>
+<body oncontextmenu="return false;">
+    <div style="float:left; width:25%; text-align:right">
+        <div>
+            <button class="boxbtn" id="Start" style=" font-Size :20px" style="color:rgb(255,255,255)" ;>Start</button>
+            <lable class="box" id="Mid" style="background-color: rgb(255,255,255);"><%=coin %></lable>
+            <button class="boxbtn" id="Pause" style=" font-Size :20px" style="color:rgb(255,255,255)" ;>Pause</button>
+        </div>
+        <div>
+            <lable class="box" id="score1" style="background-color: rgb(255,255,255);">score:</lable>
+            <lable class="box" id="score2" name="score" style="background-color: rgb(255,255,255);"></lable>
+            <lable class="box" id="score3" style="background-color: rgb(255,255,255);"></lable>
+        </div>
+        <div>
+            <button class="boxbtn" id="UP" style="background-color: rgb(100,100,100);"></button>
+            <lable class="boxbtn" id="Mid" style="background-color: rgb(255,255,255);"></lable>
+        </div>
+        <div>
+            <button class="boxbtn" id="Left" style="background-color: rgb(100,100,100);"></button>
+            <lable class="box" id="Mid" style="background-color: rgb(255,255,255);"></lable>
+            <button class="boxbtn" id="Right" style="background-color: rgb(100,100,100);"></button>
+        </div>
+        <div>
+            <button class="boxbtn" id="Down" style="background-color: rgb(100,100,100);"></button>
+            <lable class="box" id="Mid" style="background-color: rgb(255,255,255);"></lable>
+        </div>
+    </div>
+    <div style="float:left; width:50%; text-align:center;">
+        <canvas id="gameBoard" width="700" height="600" style="border:1px solid rgba(200,150,0,255);">
+        </canvas>
+        <canvas id="bloodBoard" width="700" height="30" style="border:1px solid rgba(200,150,0,255);">
+        </canvas>
+    </div>
+    <div style="float:left; width:25%;text-align:left">
+    <form action="/member" method="POST">
+        <div> <button class="boxbtn" id="Stop" style=" font-Size :20px" style="color:rgb(255,255,255);">End</button></div>
+    </form>
+        <div> <label class="box" id="greenB" tyle=" font-Size :20px" style="color:rgb(255,255,255);"><%=score %></label></div>
+        <div> <button class="boxbtn" id="blueB" style=" font-Size :20px" style="color:rgb(255,255,255);"></button></div>
+    </div>
+</body>
+  <script>
+const ctx = gameBoard.getContext("2d");
+const ctx2 = bloodBoard.getContext("2d");
+const W = 700, H = 600;  //Width and height of the game board  
+const UP = document.querySelector('#UP');
+const Left = document.querySelector('#Left');
+const Right = document.querySelector('#Right');
+const Down = document.querySelector('#Down');
+const GreenB = document.querySelector('#greenB');
+const BlueB = document.querySelector('#blueB');
+const Start = document.querySelector('#Start');
+const Pause = document.querySelector('#Pause');
+const fixed = document.querySelector('#score1');
+const board = document.querySelector('#score2');
+let xRac = 10, yRac = 60, xMan = 555, yMan = 570, xBall = [550], yBall = [500];
+let ss = [0], ss2 = 2, ss3 = 0; RACyMove = 0, score = 0, blood = 1, total = 1, i = 0, a = [6], b = [6], A = [0], B = [0], bear = 1;
+let MboxX = [400], MboxY = [0];
+var jump, Rgo, Lgo, GameStart;
+fixed.style.fontSize = "30px";
+board.style.fontSize = "30px";
+UP.style.color = "rgb(255,255,255)";
+UP.style.fontSize = "50px";
+UP.innerHTML = "W"
+Left.style.color = "rgb(255,255,255)";
+Left.style.fontSize = "50px";
+Left.innerHTML = "A"
+Right.style.color = "rgb(255,255,255)";
+Right.style.fontSize = "50px";
+Right.innerHTML = "D"
+Down.style.color = "rgb(255,255,255)";
+Down.style.fontSize = "50px";
+Down.innerHTML = "S"
+GreenB.style.color = "rgb(255,0,255)";
+GreenB.style.fontSize = "50px";
+BlueB.style.fontSize = "20px";
+BlueB.innerHTML = "Easy";
+BlueB.onclick = function () {
+    switch (ss3) {
+        case 0:
+            ss3 = 1;
+            BlueB.innerHTML = "Common";
+            mode1 = setInterval(function () {
+                if (Start.disabled == true)
+                    BallPlus()
+            }, 2500)
+            clearInterval(mode0)
+            break;
+        case 1:
+            ss3 = 2;
+            BlueB.innerHTML = "Hard";
+            mode2 = setInterval(function () {
+                if (Start.disabled == true)
+                    BallPlus()
+            }, 1000)
+            clearInterval(mode1)
+
+            break;
+        case 2:
+            ss3 = 0;
+            BlueB.innerHTML = "Easy";
+            mode0 = setInterval(function () {
+                if (Start.disabled == true)
+                    BallPlus()
+            }, 5000)
+            clearInterval(mode2)
+
+            break;
+    }
+}
+IamKing = false;
+document.addEventListener("keydown", keyDownHandler, false);
+document.addEventListener("keyup", keyUpHandler, false);
+
+//----------------------- Draw the sprite -------------------------
+//the with and height of the spritesheet
+const spriteWidthA = 315, spriteWidthB = 315, spriteWidthC = 80, spriteWidthD = 80, spriteWidthE = 105, spriteWidthF = 105;
+const spriteHeightA = 75, spriteHeightB = 75, spriteHeightC = 75, spriteHeightD = 75, spriteHeightE = 75, spriteHeightF = 75;
+//There are 2 rows and 8 cols in the sprite sheet
+const rowsA = 1, rowsB = 1, rowsC = 1, rowsD = 1, rowsE = 1, rowsF = 1;
+const colsA = 6, colsB = 6, colsC = 2, colsD = 2, colsE = 2, colsF = 2;
+const widthA = spriteWidthA / colsA, widthB = spriteWidthB / colsB, widthC = spriteWidthC / colsC, widthD = spriteWidthD / colsD, widthE = spriteWidthE / colsE, widthF = spriteWidthF / colsF;
+const heightA = spriteHeightA / rowsA, heightB = spriteHeightB / rowsB, heightC = spriteHeightC / rowsC, heightD = spriteHeightD / rowsD, heightE = spriteHeightE / rowsE, heightF = spriteHeightF / rowsF;
+//The total frame is 8 
+const frameCountA = 6;
+let curFrameA = 5, curFrameB = 5, curFrameC = 0, curFrameD = 1, curFrameE = 1, curFrameF = 1;
+//Row 1 (2nd row)  is for the left movement;  Row 0 (1st row)  is for right movement
+let trackLeftA = 2;
+let srcXA, srcXB, srcXC, srcXD, srcXE, srcXF;
+let srcYA, srcYB, srcYC, srcYD, srcYE, srcYF;
+//Creating an Image object for our character 
+const characterA = new Image();
+const characterB = new Image();
+const characterC = new Image();
+const characterD = new Image();
+const characterE = new Image();
+const characterF = new Image();
+//Setting the source to the image file 
+characterA.src = "https://cdn.glitch.me/c796bfbc-b839-474c-a2c3-d4328a152ccc/image_R.png?v=1640250285242";
+characterB.src = "https://cdn.glitch.me/c796bfbc-b839-474c-a2c3-d4328a152ccc/image_L.png?v=1640250282189";
+characterC.src = "https://cdn.glitch.me/c796bfbc-b839-474c-a2c3-d4328a152ccc/image_S.png?v=1640250288100";
+characterD.src = "https://cdn.glitch.me/c796bfbc-b839-474c-a2c3-d4328a152ccc/image_SL.png?v=1640250291033";
+characterE.src = "https://cdn.glitch.me/c796bfbc-b839-474c-a2c3-d4328a152ccc/image_H.png?v=1640250275429";
+characterF.src = "https://cdn.glitch.me/c796bfbc-b839-474c-a2c3-d4328a152ccc/image_HL.png?v=1640250278660";
+function updateFrame() {
+    //Updating the frame index 
+    curFrameA--
+    if (curFrameA < 0) curFrameA = 5;
+    curFrameB--
+    if (curFrameB < 0) curFrameB = 5;
+    curFrameE--
+    if (curFrameE < 0) curFrameE = 1;
+    curFrameF--
+    if (curFrameF < 0) curFrameF = 1;
+    //Calculating the x coordinate for spritesheet 
+    srcXA = curFrameA * widthA;
+    srcXB = curFrameB * widthB;
+    srcXC = curFrameC * widthC;
+    srcXD = curFrameD * widthD;
+    srcXE = curFrameE * widthE;
+    srcXF = curFrameF * widthF;
+    //Calculating the y coordinate for spritesheet 
+    srcYA = 0 * heightA;
+    srcYB = 0 * heightB;
+    srcYC = 0 * heightC;
+    srcYD = 0 * heightD;
+    srcYE = 0 * heightE;
+    srcYF = 0 * heightF;
+}
+function Runner(x, y) {
+    //Updating the frame 
+    updateFrame();
+    //Drawing the image 
+    if (trackLeftA == 0)
+        ctx.drawImage(characterA, srcXA, srcYA, widthA, heightA, x, y, widthA * 0.8, heightA * 0.8);
+    else if (trackLeftA == 1)
+        ctx.drawImage(characterB, srcXB, srcYB, widthB, heightB, x, y, widthB * 0.8, heightB * 0.8);
+    else if (trackLeftA == 2)
+        ctx.drawImage(characterC, srcXC, srcYC, widthC, heightC, x, y, widthC * 0.8, heightC * 0.8);
+    else if (trackLeftA == 3)
+        ctx.drawImage(characterD, srcXD, srcYD, widthD, heightD, x, y, widthD * 0.8, heightD * 0.8);
+    else if (trackLeftA == 4)
+        ctx.drawImage(characterE, srcXE, srcYE, widthE, heightE, x, y, widthE * 0.8, heightE * 0.8);
+    else if (trackLeftA == 5)
+        ctx.drawImage(characterF, srcXF, srcYF, widthF, heightF, x, y, widthF * 0.8, heightF * 0.8);
+}
+//---------------------------------------------------------
+
+function BallPlus() {
+    total += 1;
+    if (total <= 20) {
+        xBall.push(randomInt(690));
+        yBall.push(randomInt(300));
+        ss.push(randomInt(4));
+        a.push(random(6) + 1);
+        b.push(random(6) + 1);
+        A.push(0);
+        B.push(0);
+    }
+    else if (total > 20) {
+        if (bear < 2)
+            bear *= 1.01;
+    }
+}
+
+setInterval(function MboxPlus() {
+    if (Start.disabled == true) {
+        MboxX.push(randomInt(680) + 10)
+        MboxY.push(-10)
+    }
+}, 30000)
+
+mode0 = setInterval(function () {
+    if (Start.disabled == true)
+        BallPlus()
+}, 5000)
+
+scoreP = setInterval(function () {
+    if (Start.disabled == true) {
+        score++;
+        board.innerHTML = score;
+    }
+}, 1000)
+
+function keyDownHandler(e) {
+    if (e.keyCode == 68) {
+        rightPressed = true;
+        trackLeftA = 0;
+    }
+    else if (e.keyCode == 65) {
+        leftPressed = true;
+        trackLeftA = 1;
+    }
+    else if (ss2 == 2) {
+        if (e && e.keyCode == 87) {
+            jump = setInterval(function () { myTimer() }, 5);
+            ss2 = 0;
+        }
+        else;
+    }
+}
+
+function keyUpHandler(e) {
+    if (e.keyCode == 68) {
+        rightPressed = false;
+        if (trackLeftA == 0)
+            trackLeftA = 2;
+    }
+    else if (e.keyCode == 65) {
+        leftPressed = false;
+        if (trackLeftA == 1)
+            trackLeftA = 3;
+    }
+}
+
+setInterval(function () {
+    if (rightPressed == true) xMan += 3;
+    else if (leftPressed == true) xMan -= 3;
+}, 10)
+
+Start.onclick = function () {
+    GameStart = setInterval(function () { BigBall() }, 30);
+    Start.style.backgroundColor = "rgb(200,200,200)";
+    Start.disabled = true;
+    Pause.style.backgroundColor = "white";
+    Pause.disabled = false;
+}
+Pause.onclick = function () {
+    clearInterval(GameStart);
+    Start.style.backgroundColor = "white";
+    Start.disabled = false;
+    Pause.style.backgroundColor = "rgb(200,200,200)";
+    Pause.disabled = true;
+}
+function BigBall() {
+    for (i = 0; i < ss.length; i++) {
+        switch (ss[i]) {
+            case 0:
+                xBall[i] -= A[i];
+                yBall[i] -= B[i];
+                if (xBall[i] <= 10) ss[i] = 1;
+                else if (yBall[i] <= 10) ss[i] = 2;
+                break;
+            case 1:
+                xBall[i] += A[i];
+                yBall[i] -= B[i];
+                if (xBall[i] >= 690) ss[i] = 0;
+                else if (yBall[i] <= 10) ss[i] = 3;
+                break;
+            case 2:
+                xBall[i] -= A[i];
+                yBall[i] += B[i];
+                if (xBall[i] <= 10) ss[i] = 3;
+                else if (yBall[i] >= 590) ss[i] = 0;
+                break;
+            case 3:
+                xBall[i] += A[i];
+                yBall[i] += B[i];
+                if (xBall[i] >= 690) ss[i] = 2;
+                else if (yBall[i] >= 590) ss[i] = 1;
+                break;
+        }
+    }
+
+
+    if (xMan >= 700) xMan = 10;
+    else if (xMan <= 0) xMan = 690;
+    ctx.clearRect(0, 0, W, H);
+    ctx2.clearRect(0, 0, 700, 30);
+    bloodtank(0, 0);
+    Runner(xMan, yMan - 25);
+    if (IamKing == true) star();
+    else {
+        //man(xMan, yMan);
+    }
+    for (i = 0; i < MboxX.length; i++) {
+        if (MboxY[i] < 590) {
+            MboxY[i] += 1;
+        }
+        if (difference(MboxX[i], xMan) <= 20 && difference(MboxY[i], yMan) <= 20) {
+            MboxX.shift();
+            MboxY.shift();
+            if (blood < 10)
+                blood += 1;
+        }
+        Madical_box(MboxX[i], MboxY[i]);
+    }
+    //Racket(xRac, yRac);
+    for (i = 0; i < xBall.length; i++) {
+        Ball(xBall[i], yBall[i]);
+        A[i] = a[i] * bear;
+        B[i] = b[i] * bear;
+        if (difference(xBall[i], xMan) <= 20 && difference(yBall[i], yMan) <= 20) {
+            if (IamKing == false) {
+                damage();
+            }
+        }
+        if (difference(xBall[i], xMan) <= 2) {
+            if (yMan < yBall[i]) {
+                score += 5;
+                PLusScore = setInterval(function () {
+                    PLusFive(xMan + 10, yMan - 20)
+                    setTimeout(function () {
+                        clearInterval(PLusScore);
+                    }, 1000);
+                }, 10)
+            }
+        }
+
+    }
+
+    if (blood <= 0) {
+        alert("You Dead");
+        window.location.replace(location.href);
+        blood = 10;
+    }
+}
+
+function damage() {
+    IamKing = true;
+    blood -= 1;
+    setTimeout(function () {
+        IamKing = false;
+        trackLeftA = 2;
+        //clearInterval(blink);
+    }, 3000);
+}
+
+function star() {
+    if (trackLeftA == 0 || trackLeftA == 2)
+        trackLeftA = 4;
+    else if (trackLeftA == 1 || trackLeftA == 3)
+        trackLeftA = 5;
+}
+
+function myTimer() {
+    switch (ss2) {
+        case 0:
+            yMan -= 2;
+            if (yMan <= 460) ss2 = 1;
+            break;
+        case 1:
+            yMan += 2;
+            if (yMan >= 570) {
+                clearInterval(jump);
+                ss2 = 2;
+            }
+            break;
+        case 2:
+            break;
+    }
+
+}
+
+function randomInt(max) {
+    return Math.floor(Math.random() * Math.floor(max));
+}
+
+function random(max) {
+    return Math.random() * Math.floor(max);
+}
+
+function difference(a, b) {
+    return Math.abs(a - b);
+}
+
+function Ball(x, y) {
+    ctx.fillStyle = "rgb(150,50,100)";
+    ctx.translate(x, y);
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.translate(-x, -y);
+}
+
+function Madical_box(x, y) {
+    ctx.fillStyle = "rgb(255,0,0)";
+    ctx.translate(x, y);
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.translate(-x, -y);
+    ctx.fillStyle = "rgb(255,255,255)";
+    ctx.fillRect(x, y, 1, 5);
+    ctx.fillRect(x, y, -1, 5);
+    ctx.fillRect(x, y, 1, -5);
+    ctx.fillRect(x, y, -1, 5);
+    ctx.fillRect(x, y, -1, -5);
+    ctx.fillRect(x, y, 5, 1);
+    ctx.fillRect(x, y, -5, 1);
+    ctx.fillRect(x, y, 5, -1);
+    ctx.fillRect(x, y, -5, 1);
+    ctx.fillRect(x, y, -5, -1);
+}
+
+function man(x, y) {
+    ctx.fillStyle = "rgb(150,120,120)"
+    ctx.fillRect(x, y, 8, 30);
+    ctx.fillRect(x, y, -8, 30);
+    ctx.translate(x, y);
+    ctx.beginPath();
+    ctx.arc(0, 0, 15, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.translate(-x, -y);
+}
+
+function damageman(x, y) {
+    ctx.fillStyle = "rgb(250,120,120)"
+    ctx.fillRect(x, y, 9, 30);
+    ctx.fillRect(x, y, -9, 30);
+    ctx.translate(x, y);
+    ctx.beginPath();
+    ctx.arc(0, 0, 16, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.translate(-x, -y);
+}
+
+function PLusFive(x, y) {
+    ctx.fillStyle = "rgb(250,50,50)"
+    ctx.fillRect(x, y, 2, 10);
+    ctx.fillRect(x, y, -2, 10);
+    ctx.fillRect(x, y, 2, -10);
+    ctx.fillRect(x, y, -2, 10);
+    ctx.fillRect(x, y, -2, -10);
+    ctx.fillRect(x, y, 10, 2);
+    ctx.fillRect(x, y, -10, 2);
+    ctx.fillRect(x, y, 10, -2);
+    ctx.fillRect(x, y, -10, 2);
+    ctx.fillRect(x, y, -10, -2);
+}
+
+function bloodtank(x, y) {
+    ctx2.fillStyle = "rgb(220,0,0)";
+    ctx2.fillRect(x, y, 70 * blood, 30);
+}
+
+function cure(x, y) {
+    ctx.fillStyle = "rgb(250,50,50)"
+    ctx.fillRect(x, y, 1, 5);
+    ctx.fillRect(x, y, -1, 5);
+    ctx.fillRect(x, y, 1, -5);
+    ctx.fillRect(x, y, -1, 5);
+    ctx.fillRect(x, y, -1, -5);
+    ctx.fillRect(x, y, 5, 1);
+    ctx.fillRect(x, y, -5, 1);
+    ctx.fillRect(x, y, 5, -1);
+    ctx.fillRect(x, y, -5, 1);
+    ctx.fillRect(x, y, -5, -1);
+}
+    
+//function ajaxRequest(name,cmd){
+//  $.post("/request",
+//         {
+//            username: name,
+//            command: cmd
+//  ,function (data,status){
+//    let players =null
+//    if(data.length>0)player
+//    for(let i=0;i<data.length;i++){
+//      players += (data[i]+'  ');
+//    }
+//    if(players 1==null)
+      //showPlayers.innerHTML = players
+    
+//  }
+//         })
+//}
+  </script>
+  
+</html>
